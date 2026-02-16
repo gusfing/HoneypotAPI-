@@ -50,8 +50,8 @@ This API acts as a **digital honeypot** — it impersonates a vulnerable person 
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/gusfing/HoneypotAPI.git
-cd HoneypotAPI
+git clone https://github.com/gusfing/HoneypotAPI-.git
+cd HoneypotAPI-
 ```
 
 ### 2. Install dependencies
