@@ -1,25 +1,41 @@
 """
 Intelligence Extractor - Extracts phone numbers, bank accounts, UPI IDs, URLs, and emails
-from scammer messages using robust regex patterns.
+from scammer messages using robust regex patterns AND LLM fallback.
 This is the HIGHEST VALUE component (40 pts).
 """
 import re
 import logging
+import json
+import requests
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 def extract_all(text: str) -> dict:
-    """Extract all intelligence from a text string."""
+    """Extract all intelligence from a text string using Regex + LLM."""
     if not text or not isinstance(text, str):
         return _empty_intel()
-    return {
+    
+    # 1. Regex Extraction (Fast, cheap, reliable for standard patterns)
+    regex_intel = {
         "phoneNumbers": extract_phone_numbers(text),
         "bankAccounts": extract_bank_accounts(text),
         "upiIds": extract_upi_ids(text),
         "phishingLinks": extract_urls(text),
         "emailAddresses": extract_emails(text),
     }
+    
+    # 2. LLM Extraction (Slow, costs money, but finds hidden/tricky items)
+    # Only call if we have an API key and the text is long enough to assume context
+    if settings.OPENROUTER_API_KEY and len(text) > 20:
+        try:
+            llm_intel = extract_with_llm(text)
+            regex_intel = merge_intelligence(regex_intel, llm_intel)
+        except Exception as e:
+            logger.error(f"LLM Extraction failed: {e}")
+            
+    return regex_intel
 
 
 def _empty_intel() -> dict:
@@ -32,6 +48,61 @@ def _empty_intel() -> dict:
     }
 
 
+def extract_with_llm(text: str) -> dict:
+    """
+    Fallback: Use LLM to extract intelligence.
+    Useful for items that regex misses (e.g. "my number is nine eight...")
+    """
+    try:
+        completion = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": settings.OPENROUTER_MODEL,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a data extraction engine. Extract the following entities from the text as JSON: "
+                            "phoneNumbers (list of strings), bankAccounts (list of strings), upiIds (list of strings), "
+                            "phishingLinks (list of strings), emailAddresses (list of strings). "
+                            "Return ONLY valid JSON. If an entity is not found, return an empty list."
+                        ),
+                    },
+                    {"role": "user", "content": text},
+                ],
+                "response_format": {"type": "json_object"},
+            },
+            timeout=8,  # Short timeout to not slow down API too much
+        )
+
+        if completion.status_code == 200:
+            content = completion.json()['choices'][0]['message']['content']
+            # Clean possible markdown code blocks
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0]
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0]
+            
+            data = json.loads(content)
+            # Normalize keys to match our schema
+            return {
+                "phoneNumbers": [str(x) for x in data.get("phoneNumbers", [])],
+                "bankAccounts": [str(x) for x in data.get("bankAccounts", [])],
+                "upiIds": [str(x) for x in data.get("upiIds", [])],
+                "phishingLinks": [str(x) for x in data.get("phishingLinks", [])],
+                "emailAddresses": [str(x) for x in data.get("emailAddresses", [])],
+            }
+            
+    except Exception as e:
+        logger.warning(f"LLM Extraction internal error: {e}")
+    
+    return _empty_intel()
+
+
 def merge_intelligence(existing: dict, new: dict) -> dict:
     """Merge new extracted intelligence into existing, deduplicating."""
     merged = {}
@@ -42,6 +113,8 @@ def merge_intelligence(existing: dict, new: dict) -> dict:
         seen = set()
         combined = []
         for item in list(existing_list) + list(new_list):
+            if not isinstance(item, str):
+                continue
             norm = item.strip().lower()
             if norm not in seen:
                 combined.append(item.strip())
@@ -176,7 +249,7 @@ def extract_urls(text: str) -> list:
 
 def extract_emails(text: str) -> list:
     """Extract email addresses - distinguish from UPI IDs by requiring TLD."""
-    pattern = r'\b([a-zA-Z0-9][a-zA-Z0-9._%+-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,})\b'
+    pattern = r'\b([a-zA-Z0-9][a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b'
     
     matches = re.findall(pattern, text, re.IGNORECASE)
     results = []
