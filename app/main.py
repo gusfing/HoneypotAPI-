@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Any
 from app.core.config import settings
 from app.services import extractor, detector, session
 from app.services.responder import generate_response
@@ -41,7 +41,7 @@ app.add_middleware(
 class MessageModel(BaseModel):
     sender: str = "scammer"
     text: str = ""
-    timestamp: Optional[str] = None
+    timestamp: Any = None
 
 
 class MetadataModel(BaseModel):
