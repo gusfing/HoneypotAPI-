@@ -144,12 +144,13 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
     
     logger.info(f"[{body.sessionId}] Scam: {scam_result['scam_type']} ({scam_result['confidence']})")
     
-    # 3. Generate response
+    # 3. Generate response (LLM-powered with template fallback)
     reply = generate_response(
         turn=sess.message_count,
         scam_type=sess.scam_type,
         message=body.message.text,
         extracted=sess.extracted_intelligence,
+        conversation_history=body.conversationHistory,
     )
     
     logger.info(f"[{body.sessionId}] Reply: {reply[:80]}...")
