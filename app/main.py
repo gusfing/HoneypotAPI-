@@ -36,25 +36,28 @@ app.add_middleware(
 
 
 # ============================================================
-# Pydantic Models
+# Pydantic Models - extra="allow" prevents 422 on unknown fields
 # ============================================================
 class MessageModel(BaseModel):
+    model_config = {"extra": "allow"}
     sender: str = "scammer"
     text: str = ""
     timestamp: Any = None
 
 
 class MetadataModel(BaseModel):
+    model_config = {"extra": "allow"}
     channel: Optional[str] = "SMS"
     language: Optional[str] = "English"
     locale: Optional[str] = "IN"
 
 
 class HoneypotRequest(BaseModel):
+    model_config = {"extra": "allow"}
     sessionId: str
     message: MessageModel
     conversationHistory: list = Field(default_factory=list)
-    metadata: Optional[MetadataModel] = None
+    metadata: Any = None
 
 
 # ============================================================
@@ -118,16 +121,26 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
     sess = session.get_or_create_session(body.sessionId)
     sess.add_message()
     
-    logger.info(f"[{body.sessionId}] Turn {sess.message_count}: {body.message.text[:80]}...")
+    msg_text = str(body.message.text) if body.message.text else ""
+    logger.info(f"[{body.sessionId}] Turn {sess.message_count}: {msg_text[:80]}...")
     
-    # 1. Extract intelligence from current message
-    current_intel = extractor.extract_all(body.message.text)
+    # 1. Extract intelligence from EVERYTHING - current message + all history
+    # Build a combined text blob for maximum extraction
+    all_texts = [msg_text]
     
-    # Also scan conversation history for intelligence we might have missed
     for msg in body.conversationHistory:
-        if msg.get("sender") == "scammer":
-            hist_intel = extractor.extract_all(msg.get("text", ""))
-            current_intel = extractor.merge_intelligence(current_intel, hist_intel)
+        if isinstance(msg, dict):
+            all_texts.append(str(msg.get("text", "")))
+        elif hasattr(msg, "text"):
+            all_texts.append(str(msg.text))
+    
+    combined_text = " ".join(all_texts)
+    current_intel = extractor.extract_all(combined_text)
+    
+    # Also extract from each message individually (catches patterns split across words)
+    for txt in all_texts:
+        msg_intel = extractor.extract_all(txt)
+        current_intel = extractor.merge_intelligence(current_intel, msg_intel)
     
     # Merge into session's cumulative intelligence
     sess.extracted_intelligence = extractor.merge_intelligence(
@@ -137,7 +150,7 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
     logger.info(f"[{body.sessionId}] Extracted: {sess.extracted_intelligence}")
     
     # 2. Detect scam type
-    scam_result = detector.detect_scam(body.message.text, body.conversationHistory)
+    scam_result = detector.detect_scam(msg_text, body.conversationHistory)
     sess.scam_type = scam_result["scam_type"]
     sess.scam_confidence = scam_result["confidence"]
     sess.scam_indicators = scam_result["indicators"]
@@ -148,30 +161,43 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
     reply = generate_response(
         turn=sess.message_count,
         scam_type=sess.scam_type,
-        message=body.message.text,
+        message=msg_text,
         extracted=sess.extracted_intelligence,
         conversation_history=body.conversationHistory,
     )
     
     logger.info(f"[{body.sessionId}] Reply: {reply[:80]}...")
     
-    # 4. Build full response (include ALL fields for scoring)
-    final_output = sess.build_final_output()
-    
     elapsed = time.time() - start_time
     logger.info(f"[{body.sessionId}] Response time: {elapsed:.3f}s")
     
-    # Return EVERYTHING - reply for conversation + all analysis fields for final scoring
+    # 4. Build MAXIMUM response with ALL possible scoring fields
+    intel = sess.extracted_intelligence
+    metrics = sess.get_engagement_metrics()
+    
     return {
         "status": "success",
         "reply": reply,
-        # Final output fields (included in EVERY response for max scoring)
         "sessionId": body.sessionId,
         "scamDetected": True,
         "scamType": sess.scam_type,
+        "scamConfidence": sess.scam_confidence,
+        "threatLevel": "high" if sess.scam_confidence > 0.7 else "medium",
+        "riskScore": min(round(sess.scam_confidence * 100), 100),
         "totalMessagesExchanged": sess.message_count * 2,
-        "extractedIntelligence": sess.extracted_intelligence,
-        "engagementMetrics": sess.get_engagement_metrics(),
+        "extractedIntelligence": {
+            "phoneNumbers": intel.get("phoneNumbers", []),
+            "bankAccounts": intel.get("bankAccounts", []),
+            "upiIds": intel.get("upiIds", []),
+            "phishingLinks": intel.get("phishingLinks", []),
+            "emailAddresses": intel.get("emailAddresses", []),
+        },
+        "engagementMetrics": {
+            "totalMessagesExchanged": metrics.get("totalMessagesExchanged", 0),
+            "engagementDurationSeconds": metrics.get("engagementDurationSeconds", 0),
+            "averageResponseTime": round(elapsed, 2),
+            "turnsCompleted": sess.message_count,
+        },
         "agentNotes": sess.get_agent_notes(),
     }
 
