@@ -152,3 +152,6 @@ This simulates 3 scenarios (bank fraud, UPI fraud, phishing) with 10-turn conver
 
 ## 👨‍💻 Author
 **Kunal Sharma**
+**Agency**: Kawaki Studio
+**Contact**: [Insert Your Email/Phone Here]
+**Website**: [Insert Website Link Here]
