@@ -91,6 +91,8 @@ class Session:
             "sessionId": self.session_id,
             "scamDetected": True,
             "scamType": self.scam_type,
+            "scamConfidence": self.scam_confidence,
+            "confidenceLevel": self.scam_confidence,
             "totalMessagesExchanged": int(self.message_count * 2),
             "engagementDurationSeconds": int(dur),
             "extractedIntelligence": self.extracted_intelligence,

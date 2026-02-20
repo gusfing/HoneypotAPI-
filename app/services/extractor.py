@@ -14,19 +14,24 @@ logger = logging.getLogger(__name__)
 
 # Pre-compile regex patterns for maximum performance during evaluation loops
 PHONE_PATTERNS = [
-    re.compile(r'\+91[-.·\s]?\d{5}[-.·\s]?\d{5}'),
-    re.compile(r'\+91[-.·\s]?\d{10}'),
-    re.compile(r'(?<!\d)91[-.·\s]\d{5}[-.·\s]?\d{5}'),
-    re.compile(r'(?<!\d)91[-.·\s]\d{10}'),
-    re.compile(r'\+\d{1,3}[-.·\s]?\(?\d{1,5}\)?[-.·\s]?\d{3,5}[-.·\s]?\d{3,5}'),
+    # Indian formats with varied spacing/delimiters
+    re.compile(r'\+91[-.\s]?\d{5}[-.\s]?\d{5}'),
+    re.compile(r'\+91[-.\s]?\d{10}'),
+    re.compile(r'(?<!\d)91[-.\s]?\d{5}[-.\s]?\d{5}'),
+    re.compile(r'(?<!\d)91[-.\s]?\d{10}'),
+    # Generic international formats
+    re.compile(r'\+\d{1,4}[-.\s]?\(?\d{1,5}\)?[-.\s]?\d{3,5}[-.\s]?\d{3,5}'),
+    # Plain 10-digit mobile
     re.compile(r'(?<!\d)[6-9]\d{9}(?!\d)'),
-    re.compile(r'(?<!\d)\d{5}[-.·\s]\d{5}(?!\d)'),
+    # Chunked numbers: 98765-43210
+    re.compile(r'(?<!\d)\d{5}[-.\s]?\d{5}(?!\d)'),
+    # Triplet spacing: 987 654 3210
+    re.compile(r'(?<!\d)\d{3}[-.\s]?\d{3}[-.\s]?\d{4}(?!\d)'),
 ]
 
 BANK_PATTERNS = [
-    re.compile(r'(?:account|a/c|acct|acc)[.\s#:_-]*(?:no|number|num|#)?[.\s#:_-]*(\d{10,18})', re.IGNORECASE),
-    re.compile(r'(?<!\d)(\d{13,18})(?!\d)'),
-    re.compile(r'(?<!\d)(\d{12})(?!\d)'),
+    re.compile(r'(?:account|a/c|acct|acc|balance|transfer)[.\s#:_-]*(?:no|number|num|#)?[.\s#:_-]*(\d{9,18})', re.IGNORECASE),
+    re.compile(r'(?<!\d)(\d{12,18})(?!\d)'),
 ]
 
 BANK_CONTEXT_SHORT = re.compile(r'(?<!\d)(\d{10,11})(?!\d)')
@@ -45,14 +50,15 @@ UPI_PATTERN = re.compile(rf'([\w][\w.-]*@(?:{UPI_BANKS}))\b', re.IGNORECASE)
 URL_PATTERNS = [
     re.compile(r'https?://[^\s,)\"\'<>\]]+', re.IGNORECASE),
     re.compile(r'(?<!\S)www\.[^\s,)\"\'<>\]]+', re.IGNORECASE),
+    re.compile(r'[a-zA-Z0-9.-]+\.(?:com|org|net|in|co|io|xyz|top|site|biz|club|shop|online|store|apk|download)(?:/[^\s,)\"\'<>\]]*)?', re.IGNORECASE),
 ]
 
 EMAIL_PATTERN = re.compile(r'\b([a-zA-Z0-9][a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b', re.IGNORECASE)
-EMAIL_TLD = re.compile(r'\.(com|org|net|in|co|io|gov|edu|info|biz|me|xyz|online|site|tech|app|dev|cloud|mail|email|store|shop|pro|name|mobi|tel|asia|us|uk|ca|au|de|fr|jp|ru|br|za|ng|ke)$', re.IGNORECASE)
 
-CASE_ID_PATTERN = re.compile(r'(?i)(?:case|reference|ref|ticket)[.\s#:_-]*([A-Z0-9-]{5,20})\b')
-POLICY_ID_PATTERN = re.compile(r'(?i)(?:policy)[.\s#:_-]*([A-Z0-9-]{5,20})\b')
-ORDER_ID_PATTERN = re.compile(r'(?i)(?:order)[.\s#:_-]*([A-Z0-9-]{5,20})\b')
+# ID Patterns - Case, Policy, Order, Ticket
+CASE_ID_PATTERN = re.compile(r'(?i)(?:case|reference|ref|ticket)[.\s#:_-]*([A-Z0-9-]+)\b')
+POLICY_ID_PATTERN = re.compile(r'(?i)(?:policy)[.\s#:_-]*([A-Z0-9-]+)\b')
+ORDER_ID_PATTERN = re.compile(r'(?i)(?:order|shipping|track)[.\s#:_-]*([A-Z0-9-]+)\b')
 
 def _empty_intel() -> Dict[str, List[str]]:
     return {
