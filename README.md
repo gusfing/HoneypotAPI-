@@ -73,7 +73,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ## 📡 API Endpoint
 
-- **URL**: `POST /honeypot`
+- **URL**: `https://honeypot-green.vercel.app/honeypot`
+- **Method**: `POST`
 - **Authentication**: `x-api-key` header
 - **Content-Type**: `application/json`
 
