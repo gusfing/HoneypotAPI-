@@ -12,3 +12,9 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+if settings.API_KEY:
+    settings.API_KEY = settings.API_KEY.strip()
+if settings.DEEPSEEK_API_KEY:
+    settings.DEEPSEEK_API_KEY = settings.DEEPSEEK_API_KEY.strip()
+if settings.DEEPSEEK_MODEL:
+    settings.DEEPSEEK_MODEL = settings.DEEPSEEK_MODEL.strip()

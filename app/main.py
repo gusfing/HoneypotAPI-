@@ -66,7 +66,7 @@ class HoneypotRequest(BaseModel):
 def verify_api_key(request: Request):
     """Verify the x-api-key header."""
     api_key = request.headers.get("x-api-key")
-    if settings.API_KEY and api_key != settings.API_KEY:
+    if settings.API_KEY and api_key != settings.API_KEY.strip():
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
 
