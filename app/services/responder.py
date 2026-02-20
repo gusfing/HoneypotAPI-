@@ -46,7 +46,7 @@ def generate_response(turn: int, scam_type: str, message: str, extracted: dict, 
     Generate a response using LLM if available, otherwise use templates.
     """
     # Try LLM first
-    if settings.OPENROUTER_API_KEY:
+    if settings.DEEPSEEK_API_KEY:
         try:
             llm_reply = _call_llm(turn, scam_type, message, extracted, conversation_history)
             if llm_reply:
@@ -91,15 +91,15 @@ def _call_llm(turn: int, scam_type: str, message: str, extracted: dict, conversa
     # Add current message
     messages.append({"role": "user", "content": message})
     
-    # Call OpenRouter
+    # Call DeepSeek
     response = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
+        "https://api.deepseek.com/chat/completions",
         headers={
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
             "Content-Type": "application/json",
         },
         json={
-            "model": settings.OPENROUTER_MODEL,
+            "model": settings.DEEPSEEK_MODEL,
             "messages": messages,
             "max_tokens": 200,
             "temperature": 0.8,
@@ -108,7 +108,7 @@ def _call_llm(turn: int, scam_type: str, message: str, extracted: dict, conversa
     )
     
     if response.status_code != 200:
-        logger.warning(f"OpenRouter returned {response.status_code}: {response.text[:200]}")
+        logger.warning(f"DeepSeek returned {response.status_code}: {response.text[:200]}")
         return None
     
     data = response.json()

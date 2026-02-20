@@ -11,7 +11,7 @@ import json
 # ============================================================
 # CONFIGURATION - Change URL for live testing
 # ============================================================
-ENDPOINT_URL = "http://localhost:8001/honeypot"
+ENDPOINT_URL = "https://honeypot-green.vercel.app/honeypot"
 API_KEY = "honeypot_master_key_2026"
 
 # ============================================================
