@@ -3,8 +3,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Honeypot API"
     API_KEY: str = "honeypot_master_key_2026"
-    OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "google/gemma-3n-e2b-it:free"
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_MODEL: str = "deepseek-chat"
 
     class Config:
         case_sensitive = True

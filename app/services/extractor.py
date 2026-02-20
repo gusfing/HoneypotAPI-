@@ -24,11 +24,14 @@ def extract_all(text: str) -> dict:
         "upiIds": extract_upi_ids(text),
         "phishingLinks": extract_urls(text),
         "emailAddresses": extract_emails(text),
+        "caseIds": extract_case_ids(text),
+        "policyNumbers": extract_policy_numbers(text),
+        "orderNumbers": extract_order_numbers(text),
     }
     
     # 2. LLM Extraction (Slow, costs money, but finds hidden/tricky items)
     # Only call if we have an API key and the text is long enough to assume context
-    if settings.OPENROUTER_API_KEY and len(text) > 20:
+    if settings.DEEPSEEK_API_KEY and len(text) > 20:
         try:
             llm_intel = extract_with_llm(text)
             regex_intel = merge_intelligence(regex_intel, llm_intel)
@@ -45,6 +48,9 @@ def _empty_intel() -> dict:
         "upiIds": [],
         "phishingLinks": [],
         "emailAddresses": [],
+        "caseIds": [],
+        "policyNumbers": [],
+        "orderNumbers": [],
     }
 
 
@@ -55,20 +61,21 @@ def extract_with_llm(text: str) -> dict:
     """
     try:
         completion = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.deepseek.com/chat/completions",
             headers={
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={
-                "model": settings.OPENROUTER_MODEL,
+                "model": settings.DEEPSEEK_MODEL,
                 "messages": [
                     {
                         "role": "system",
                         "content": (
                             "You are a data extraction engine. Extract the following entities from the text as JSON: "
                             "phoneNumbers (list of strings), bankAccounts (list of strings), upiIds (list of strings), "
-                            "phishingLinks (list of strings), emailAddresses (list of strings). "
+                            "phishingLinks (list of strings), emailAddresses (list of strings), "
+                            "caseIds (list of strings), policyNumbers (list of strings), orderNumbers (list of strings). "
                             "Return ONLY valid JSON. If an entity is not found, return an empty list."
                         ),
                     },
@@ -95,6 +102,9 @@ def extract_with_llm(text: str) -> dict:
                 "upiIds": [str(x) for x in data.get("upiIds", [])],
                 "phishingLinks": [str(x) for x in data.get("phishingLinks", [])],
                 "emailAddresses": [str(x) for x in data.get("emailAddresses", [])],
+                "caseIds": [str(x) for x in data.get("caseIds", [])],
+                "policyNumbers": [str(x) for x in data.get("policyNumbers", [])],
+                "orderNumbers": [str(x) for x in data.get("orderNumbers", [])],
             }
             
     except Exception as e:
@@ -106,7 +116,7 @@ def extract_with_llm(text: str) -> dict:
 def merge_intelligence(existing: dict, new: dict) -> dict:
     """Merge new extracted intelligence into existing, deduplicating."""
     merged = {}
-    for key in ["phoneNumbers", "bankAccounts", "upiIds", "phishingLinks", "emailAddresses"]:
+    for key in ["phoneNumbers", "bankAccounts", "upiIds", "phishingLinks", "emailAddresses", "caseIds", "policyNumbers", "orderNumbers"]:
         existing_list = existing.get(key, [])
         new_list = new.get(key, [])
         # Deduplicate while preserving order
@@ -262,4 +272,55 @@ def extract_emails(text: str) -> list:
                 seen.add(cleaned.lower())
                 results.append(cleaned)
     
+    return results
+
+
+def extract_case_ids(text: str) -> list:
+    """Extract case or reference IDs."""
+    patterns = [
+        r'(?i)(?:case|reference|ref|ticket)[.\s#:_-]*([A-Z0-9-]{5,20})\b',
+    ]
+    results = []
+    seen = set()
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            cleaned = match.strip()
+            if cleaned.lower() not in seen:
+                seen.add(cleaned.lower())
+                results.append(cleaned)
+    return results
+
+
+def extract_policy_numbers(text: str) -> list:
+    """Extract policy numbers."""
+    patterns = [
+        r'(?i)(?:policy)[.\s#:_-]*([A-Z0-9-]{5,20})\b',
+    ]
+    results = []
+    seen = set()
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            cleaned = match.strip()
+            if cleaned.lower() not in seen:
+                seen.add(cleaned.lower())
+                results.append(cleaned)
+    return results
+
+
+def extract_order_numbers(text: str) -> list:
+    """Extract order numbers."""
+    patterns = [
+        r'(?i)(?:order)[.\s#:_-]*([A-Z0-9-]{5,20})\b',
+    ]
+    results = []
+    seen = set()
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            cleaned = match.strip()
+            if cleaned.lower() not in seen:
+                seen.add(cleaned.lower())
+                results.append(cleaned)
     return results

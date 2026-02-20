@@ -28,6 +28,9 @@ class Session:
             "upiIds": [],
             "phishingLinks": [],
             "emailAddresses": [],
+            "caseIds": [],
+            "policyNumbers": [],
+            "orderNumbers": [],
         }
         self.agent_notes = []
     
@@ -90,6 +93,7 @@ class Session:
             "scamDetected": True,
             "scamType": self.scam_type,
             "totalMessagesExchanged": self.message_count * 2,
+            "engagementDurationSeconds": round(self.get_engagement_duration(), 1),
             "extractedIntelligence": self.extracted_intelligence,
             "engagementMetrics": self.get_engagement_metrics(),
             "agentNotes": self.get_agent_notes(),

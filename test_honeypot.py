@@ -26,6 +26,7 @@ SCENARIOS = {
             "bankAccount": "1234567890123456",
             "upiId": "scammer.fraud@fakebank",
             "phoneNumber": "+91-9876543210",
+            "caseId": "SBI-FRAUD-2026-001",
         },
         "messages": [
             "URGENT: Your SBI account has been compromised. Your account will be blocked in 2 hours. Share your account number and OTP immediately to verify your identity.",
@@ -172,6 +173,9 @@ def evaluate(response: dict, scenario: dict) -> dict:
         "phoneNumber": "phoneNumbers",
         "phishingLink": "phishingLinks",
         "emailAddress": "emailAddresses",
+        "caseId": "caseIds",
+        "policyNumber": "policyNumbers",
+        "orderNumber": "orderNumbers",
     }
 
     for fake_key, fake_value in fake_data.items():

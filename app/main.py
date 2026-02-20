@@ -186,12 +186,16 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
             "threatLevel": "high" if sess.scam_confidence > 0.7 else "medium",
             "riskScore": min(round(sess.scam_confidence * 100), 100),
             "totalMessagesExchanged": sess.message_count * 2,
+            "engagementDurationSeconds": round(sess.get_engagement_duration(), 1),
             "extractedIntelligence": {
                 "phoneNumbers": intel.get("phoneNumbers", []),
                 "bankAccounts": intel.get("bankAccounts", []),
                 "upiIds": intel.get("upiIds", []),
                 "phishingLinks": intel.get("phishingLinks", []),
                 "emailAddresses": intel.get("emailAddresses", []),
+                "caseIds": intel.get("caseIds", []),
+                "policyNumbers": intel.get("policyNumbers", []),
+                "orderNumbers": intel.get("orderNumbers", []),
             },
             "engagementMetrics": {
                 "totalMessagesExchanged": metrics.get("totalMessagesExchanged", 0),
@@ -203,6 +207,8 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
         }
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         logger.error(f"Global Error in /honeypot: {e}", exc_info=True)
         # Fallback response to GUARANTEE points even on crash
         return {
@@ -216,7 +222,10 @@ async def honeypot_endpoint(request: Request, body: HoneypotRequest):
                 "bankAccounts": [],
                 "upiIds": [],
                 "phishingLinks": [],
-                "emailAddresses": []
+                "emailAddresses": [],
+                "caseIds": [],
+                "policyNumbers": [],
+                "orderNumbers": [],
             },
              "agentNotes": f"Error recovered: {str(e)}"
         }

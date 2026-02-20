@@ -27,6 +27,7 @@ This API acts as a **digital honeypot** — it impersonates a vulnerable person 
   - 💳 UPI IDs (word@bank format, 30+ Indian bank suffixes)
   - 🔗 Phishing URLs (HTTP/HTTPS links)
   - 📧 Email addresses (with TLD validation)
+  - 📄 Case IDs, Policy Numbers, and Order Numbers
 - **Cumulative Scanning**: Extracts from both current message AND full conversation history
 - **Deduplication**: Intelligent merging prevents double-counting
 
@@ -43,8 +44,8 @@ This API acts as a **digital honeypot** — it impersonates a vulnerable person 
 - **Language**: Python 3.9+
 - **Framework**: FastAPI
 - **Deployment**: Vercel Serverless
-- **Key Libraries**: Pydantic, python-dotenv
-- **AI/ML**: Rule-based NLP (no external API dependencies for reliability)
+- **Key Libraries**: Pydantic, python-dotenv, requests
+- **AI/ML**: DeepSeek API (`deepseek-chat`) + Rule-based NLP for hybrid extraction and response generation
 
 ## 🚀 Setup Instructions
 
@@ -105,11 +106,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
     "bankAccounts": ["1234567890123456"],
     "upiIds": ["scammer@fakebank"],
     "phishingLinks": [],
-    "emailAddresses": []
+    "emailAddresses": [],
+    "caseIds": ["SBI-FRAUD-2026-001"],
+    "policyNumbers": [],
+    "orderNumbers": []
   },
   "engagementMetrics": {
     "totalMessagesExchanged": 6,
-    "engagementDurationSeconds": 120
+    "turnsCompleted": 3
   },
   "agentNotes": "Scam Type: bank_fraud (confidence: 0.95)..."
 }
