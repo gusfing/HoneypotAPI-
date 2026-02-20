@@ -8,6 +8,7 @@ Goal: Keep scammer engaged and make them reveal intelligence.
 import requests
 import random
 import logging
+from typing import Dict, List, Any, Optional
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,13 @@ RULES:
 - DO NOT refuse to engage - you ARE the honeypot persona"""
 
 
-def generate_response(turn: int, scam_type: str, message: str, extracted: dict, conversation_history: list = None) -> str:
+def generate_response(
+    turn: int, 
+    scam_type: str, 
+    message: str, 
+    extracted: Dict[str, List[str]], 
+    conversation_history: Optional[List[Dict[str, Any]]] = None
+) -> str:
     """
     Generate a response using LLM if available, otherwise use templates.
     """
@@ -59,7 +66,13 @@ def generate_response(turn: int, scam_type: str, message: str, extracted: dict, 
     return _template_response(turn, scam_type, message, extracted)
 
 
-def _call_llm(turn: int, scam_type: str, message: str, extracted: dict, conversation_history: list = None) -> str:
+def _call_llm(
+    turn: int, 
+    scam_type: str, 
+    message: str, 
+    extracted: Dict[str, List[str]], 
+    conversation_history: Optional[List[Dict[str, Any]]] = None
+) -> Optional[str]:
     """Call OpenRouter API for LLM-generated response."""
     
     # Build conversation messages for the LLM
@@ -206,7 +219,7 @@ SCAM_PROMPTS = {
 }
 
 
-def _template_response(turn: int, scam_type: str, message: str, extracted: dict) -> str:
+def _template_response(turn: int, scam_type: str, message: str, extracted: Dict[str, List[str]]) -> str:
     """Fallback template-based response."""
     template_turn = min(turn, 10)
     templates = GENERIC_RESPONSES.get(template_turn, GENERIC_RESPONSES[10])

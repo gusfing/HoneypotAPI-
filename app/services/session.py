@@ -4,25 +4,26 @@ engagement metrics, and builds the final output for scoring.
 """
 import time
 import logging
+from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
 
 # In-memory session store
-_sessions = {}
+_sessions: Dict[str, 'Session'] = {}
 
 
 class Session:
     """Represents a single honeypot conversation session."""
     
     def __init__(self, session_id: str):
-        self.session_id = session_id
-        self.start_time = time.time()
-        self.last_message_time = self.start_time
-        self.message_count = 0
-        self.scam_type = "generic_scam"
-        self.scam_confidence = 0.0
-        self.scam_indicators = []
-        self.extracted_intelligence = {
+        self.session_id: str = session_id
+        self.start_time: float = time.time()
+        self.last_message_time: float = self.start_time
+        self.message_count: int = 0
+        self.scam_type: str = "generic_scam"
+        self.scam_confidence: float = 0.0
+        self.scam_indicators: List[str] = []
+        self.extracted_intelligence: Dict[str, List[str]] = {
             "phoneNumbers": [],
             "bankAccounts": [],
             "upiIds": [],
@@ -32,9 +33,9 @@ class Session:
             "policyNumbers": [],
             "orderNumbers": [],
         }
-        self.agent_notes = []
+        self.agent_notes: List[str] = []
     
-    def add_message(self):
+    def add_message(self) -> None:
         """Record a new message exchange."""
         self.message_count += 1
         self.last_message_time = time.time()
@@ -49,7 +50,7 @@ class Session:
         estimated_duration = self.message_count * 12.0
         return max(1.0, actual_duration, estimated_duration)
     
-    def get_engagement_metrics(self) -> dict:
+    def get_engagement_metrics(self) -> Dict[str, Any]:
         """Build engagement metrics for scoring."""
         duration = self.get_engagement_duration()
         return {
@@ -86,7 +87,7 @@ class Session:
         
         return ". ".join(notes_parts)
     
-    def build_final_output(self) -> dict:
+    def build_final_output(self) -> Dict[str, Any]:
         """Build the complete final output for maximum scoring."""
         return {
             "sessionId": self.session_id,
@@ -108,6 +109,6 @@ def get_or_create_session(session_id: str) -> Session:
     return _sessions[session_id]
 
 
-def get_session(session_id: str) -> Session:
+def get_session(session_id: str) -> Optional[Session]:
     """Get an existing session, or None."""
     return _sessions.get(session_id)
